@@ -11,5 +11,7 @@ namespace ChatApp2.Bussiness.Services
     {
         Message ProfanityChecker(Message message);
         Chat TogglePrivateChat(Chat chat);
+
+        Chat Create(ChatCreate chatCreate);
     }
 }

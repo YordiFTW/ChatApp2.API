@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ChatApp2.Domain.Models
 {
-    class ResetPasswordModel
+    public class ResetPasswordModel
     {
         public string Token { get; set; }
         public string Email { get; set; }

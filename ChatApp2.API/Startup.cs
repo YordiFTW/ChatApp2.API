@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using ChatApp2.Bussiness.Repositories;
 using ChatApp2.Domain.DbContexts;
@@ -9,8 +10,10 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +21,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+
 
 namespace ChatApp2.API
 {
@@ -36,17 +41,67 @@ namespace ChatApp2.API
         {
             string connectionString = @"Data Source=(localdb)\\mssqllocaldb;Database=ChatApp2DB;Trusted_Connection=True;MultipleActiveResultSets=true";
 
-            services.AddIdentityCore<User>(options => { });
-            services.AddScoped<IUserStore<User>, UserStore>();
-
-            services.AddAuthentication("cookies")
-                .AddCookie("cookies", options => options.LoginPath = "/Home/Login")
-                .AddMicrosoftIdentityWebApi(Configuration.GetSection("AzureAd"));
+            
 
             services.AddDbContext<ChatAppDbContext>(options =>
                     options.UseSqlServer(Configuration.GetConnectionString("ChatAppDbContext")));
 
+            services.AddIdentity<User, IdentityRole>(options => { })
+                .AddEntityFrameworkStores<ChatAppDbContext>()
+                .AddDefaultTokenProviders();
+
+            services.AddScoped<IUserStore<User>, 
+                UserOnlyStore<User, ChatAppDbContext>>();
+            services.AddScoped<IUserClaimsPrincipalFactory<User>,
+                CustomUserClaimsPrincipalFactory>();
+
+            services.Configure<DataProtectionTokenProviderOptions>(options =>
+                    options.TokenLifespan = TimeSpan.FromHours(3));
+
+            //services.AddAuthentication(options =>
+            //{
+            //    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            //    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            //}).AddJwtBearer(o =>
+            //{
+            //    o.Authority = Configuration["Jwt:Authority"];
+            //    o.Audience = Configuration["Jwt:Audience"];
+            //});
+
+
+
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                //.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options => Configuration.Bind("JwtSettings", options))
+                //.AddJwtBearer(options =>
+                //{
+                //    options.Audience = "http://localhost:5001/";
+                //    options.Authority = "http://localhost:5000/";
+                //})
+                .AddCookie("cookies", options => options.LoginPath = "/User/Login")
+                .AddMicrosoftIdentityWebApi(Configuration.GetSection("AzureAd"));
+
+            //services.ConfigureApplicationCookie(options => options.LoginPath = "/User/Login");
+
+            services.AddHttpContextAccessor();
+
             services.AddScoped<IChatRepository, ChatRepository>();
+            services.AddScoped<HttpContextAccessor>();
+            services.AddScoped<IGenericRepository<Chat>, GenericRepository<Chat>>();
+            services.AddScoped<IGenericRepository<Group>, GenericRepository<Group>>();
+
+            services.AddCors(options =>
+            {
+                // this defines a CORS policy called "default"
+                options.AddPolicy("default", policy =>
+                {
+                    policy.WithOrigins("http://localhost:4200", "https://localhost:4200")
+                        .AllowCredentials()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                        
+                });
+            });
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
@@ -68,6 +123,7 @@ namespace ChatApp2.API
             app.UseHttpsRedirection();
 
             app.UseRouting();
+            app.UseCors("default");
 
             app.UseAuthentication();
             app.UseAuthorization();

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ChatApp2.Bussiness.Repositories;
 using ChatApp2.Domain.Lists;
 using ChatApp2.Domain.Models;
 
@@ -10,8 +11,36 @@ namespace ChatApp2.Bussiness.Services
 {
     public class ChatDataService : IChatDataService
     {
+        private IGenericRepository<Chat> genericRepository = null;
+
+        public ChatDataService(IGenericRepository<Chat> genericRepository)
+        {
+            this.genericRepository = genericRepository;
+        }
+
         ProfanityList profanityList = new ProfanityList();
 
+        public Chat Create(ChatCreate chatCreate)
+        {
+            Chat chat = new Chat();
+
+            chat.Name = chatCreate.Chatname;
+
+            if (chatCreate.Hidden == false)
+                chat.Private = false;
+            else
+                chat.Private = true;
+
+            chat.MaxUsers = chatCreate.Maxusers;
+            chat.Password = chatCreate.Password;
+
+            chat.Content = "";
+
+
+            genericRepository.Insert(chat);
+
+            return chat;
+        }
 
         public Message ProfanityChecker(Message message)
         {

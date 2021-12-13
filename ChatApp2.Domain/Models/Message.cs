@@ -15,13 +15,15 @@ namespace ChatApp2.Domain.Models
 
         public bool Deleted { get; set; }
 
-        public DateTime Date { get; set; }
+        public string Date { get; set; }
 
         public ConversationType Type { get; set; }
         public string Content { get; set; }
         public string GifLink { get; set; }
 
         public string EmoticonLink { get; set; }
+
+        public int ChatId { get; set; }
 
         public Chat Chat { get; set; }
 

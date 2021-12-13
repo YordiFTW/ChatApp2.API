@@ -13,6 +13,9 @@ namespace ChatApp2.Domain.Models
         public string UserName { get; set; }
         [DataType(DataType.Password)]
         public string Password { get; set; }
+
+        [EmailAddress]
+        public string EmailAddress { get; set; }
         [Compare("Password")]
         [DataType(DataType.Password)]
         public string ConfirmPassword { get; set; }
