@@ -3,83 +3,33 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ChatApp2.Bussiness.Repositories;
-using ChatApp2.Domain.Lists;
 using ChatApp2.Domain.Models;
+using PagedList;
 
 namespace ChatApp2.Bussiness.Services
 {
-    public class ChatDataService : IChatDataService
+    public interface IChatDataService
     {
-        private IGenericRepository<Chat> genericRepository = null;
+        Message ProfanityChecker(Message message);
+        Chat TogglePrivateChat(Chat chat);
 
-        public ChatDataService(IGenericRepository<Chat> genericRepository)
-        {
-            this.genericRepository = genericRepository;
-        }
+        Chat Create(ChatCreate chatCreate);
 
-        ProfanityList profanityList = new ProfanityList();
+        Chat GetChatById(int chatId);
+        void Delete(int chatId);
 
-        public Chat Create(ChatCreate chatCreate)
-        {
-            Chat chat = new Chat();
+        void ToggleVisibility(int chatId);
 
-            chat.Name = chatCreate.Chatname;
+        IEnumerable<Chat> GetAllChats();
 
-            if (chatCreate.Hidden == false)
-                chat.Private = false;
-            else
-                chat.Private = true;
+        List<Message> GetAllMessagesByChat(int chatId);
 
-            chat.MaxUsers = chatCreate.Maxusers;
-            chat.Password = chatCreate.Password;
+        IPagedList<Message> GetAllMessagesByPaging(int page);
 
-            chat.Content = "";
+        Message CreateMessage(MessageCreate messageCreate);
 
+        List<Message> SearchMessagesBySearchTerm(string searchTerm);
 
-            genericRepository.Insert(chat);
-
-            return chat;
-        }
-
-        public Message ProfanityChecker(Message message)
-        {
-
-            foreach (string word in profanityList._wordList)
-            {
-                if (message.Content.Contains(word))
-                {
-                    string reformed = word;
-
-                    foreach (char letter in word)
-                    {
-
-                        reformed = reformed.Replace(letter, '*');
-                    }
-
-                    message.Content = message.Content.Replace(word, reformed);
-                }
-                else
-                {
-                    //donothing
-                }
-            }
-
-            return message;
-        }
-
-        public Chat TogglePrivateChat(Chat chat)
-        {
-            if (chat.Private == true)
-                chat.Private = false;
-            else
-                chat.Private = true;
-
-
-
-            return chat;
-        }
-
-
+        IEnumerable<Chat> GetCurrentUserPrivateChats();
     }
 }

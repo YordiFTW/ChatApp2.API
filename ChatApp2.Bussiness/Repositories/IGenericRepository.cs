@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ChatApp2.Domain.Models;
+using PagedList;
 
 namespace ChatApp2.Bussiness.Repositories
 {
@@ -16,5 +18,11 @@ namespace ChatApp2.Bussiness.Repositories
         void DeleteAllByChatId(int id);
         void DeleteByObj(T obj);
         void Save();
+
+        List<Message> GetAllMessagesByChat(int chatId);
+
+        IPagedList<Message> GetAllMessagesByPaging(int page);
+
+        List<Message> SearchMessagesBySearchTerm(string searchTerm);
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ChatApp2.Bussiness.Repositories;
+using ChatApp2.Bussiness.Services;
 using ChatApp2.Domain.DbContexts;
 using ChatApp2.Domain.Models;
 using Microsoft.AspNetCore.Authentication;
@@ -50,6 +51,10 @@ namespace ChatApp2.API
                 .AddEntityFrameworkStores<ChatAppDbContext>()
                 .AddDefaultTokenProviders();
 
+            services.AddControllers().AddNewtonsoftJson(options =>
+    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+);
+
             services.AddScoped<IUserStore<User>, 
                 UserOnlyStore<User, ChatAppDbContext>>();
             services.AddScoped<IUserClaimsPrincipalFactory<User>,
@@ -84,10 +89,13 @@ namespace ChatApp2.API
 
             services.AddHttpContextAccessor();
 
-            services.AddScoped<IChatRepository, ChatRepository>();
+            services.AddScoped<IChatDataService, ChatDataService>();
+            services.AddScoped<IGroupDataService, GroupDataService>();
+            services.AddScoped<IUserDataService, UserDataService>();
             services.AddScoped<HttpContextAccessor>();
             services.AddScoped<IGenericRepository<Chat>, GenericRepository<Chat>>();
             services.AddScoped<IGenericRepository<Group>, GenericRepository<Group>>();
+            
 
             services.AddCors(options =>
             {

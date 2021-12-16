@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using ChatApp2.Bussiness.Services;
+using ChatApp2.Domain.DbContexts;
 
 namespace ChatApp2.API.Controllers
 {
@@ -17,26 +18,14 @@ namespace ChatApp2.API.Controllers
     [Route("api/Messages")]
     public class ChatController : ControllerBase
     {
-        private readonly IChatRepository chatRepository;
-        private IGenericRepository<Chat> cgrepository = null;
-        private IGenericRepository<Group> ggrepository = null;
-        private readonly SignInManager<User> signInManager;
-        private readonly IHttpContextAccessor _context;
-        private readonly UserManager<User> userManager;
-        private readonly HttpContextAccessor httpContextAccessor;
-        private readonly ChatDataService chatDataService;
+        private readonly IChatDataService chatDataService;
+        private readonly IGroupDataService groupDataService;
 
-        public ChatController(IChatRepository chatRepository, IGenericRepository<Chat> cgrepository, IGenericRepository<Group> ggrepository, SignInManager<User> signInManager,
-            IHttpContextAccessor context, UserManager<User> userManager, HttpContextAccessor httpContextAccessor, ChatDataService chatDataService)
+        public ChatController(IChatDataService chatDataService, IGroupDataService groupDataService)
         {
-            this.chatRepository = chatRepository;
-            this.cgrepository = cgrepository;
-            this.ggrepository = ggrepository;
-            this.signInManager = signInManager;
-            _context = context;
-            this.userManager = userManager;
-            this.httpContextAccessor = httpContextAccessor;
+
             this.chatDataService = chatDataService;
+            this.groupDataService = groupDataService;
         }
 
 
@@ -44,55 +33,19 @@ namespace ChatApp2.API.Controllers
         [Route("CreateChat/")]
         public IActionResult CreateNewChat(ChatCreate chatCreate)
         {
-            Chat chat = new Chat();
-
-            chat.Name = chatCreate.Chatname;
-
-            if (chatCreate.Hidden == false)
-                chat.Private = false;
-            else
-                chat.Private = true;
-
-            chat.MaxUsers = chatCreate.Maxusers;
-            chat.Password = chatCreate.Password;
-
-            chat.Content = "";
-
-
-            chatRepository.AddChat(chat);
+            chatDataService.Create(chatCreate);
             
-
-            return Ok(" chat added");
+            return Ok("chat added");
         }
-
-        
-
-        [HttpGet]
-        [Route("Test/Generic/")]
-        public IActionResult TestGeneric()
-        {
-            return Ok(cgrepository.GetAll());
-        }
-
-        [HttpGet]
-        [Route("Test/User/")]
-        public IActionResult TestUser()
-        {
-            return Ok();
-        }
-
-
 
         [HttpPost]
         [Route("DeleteChat/")]
-        public IActionResult DeleteChat(string chatname)
+        public IActionResult DeleteChat(int chatId)
         {
 
-            Chat chat = chatRepository.GetChatbyName(chatname);
+            chatDataService.Delete(chatId);
 
-            chatRepository.DeleteChat(chat.Id);
-
-            return Ok(" chat deleted");
+            return Ok("chat deleted");
         }
 
         [HttpPost]
@@ -100,91 +53,57 @@ namespace ChatApp2.API.Controllers
         public IActionResult TogglePrivateChat(int chatId)
         {
 
-            Chat chat = chatRepository.GetChatbyId(chatId);
+            chatDataService.ToggleVisibility(chatId);
 
-            chatRepository.TogglePrivateChat(chat);
-
-            return Ok(" chat changed");
+            return Ok("chat changed");
         }
 
         [HttpGet]
         [Route("AllChats/")]
         public IActionResult ShowAllChats()
         {
+            chatDataService.GetAllChats();
+            
+            return Ok(chatDataService.GetAllChats());
+        }
 
+        [HttpPost]
+        [Route("PrivateChats/")]
+        public IActionResult GetPrivateChatsByCurrentUser()
+        {
+            chatDataService.GetCurrentUserPrivateChats();
 
-            chatRepository.GetAllChats();
+            return Ok(chatDataService.GetCurrentUserPrivateChats());
+        }
 
-            return Ok(chatRepository.GetAllChats());
+        [HttpGet]
+        [Route("GetChat/")]
+        public IActionResult GetChatById(int chatId)
+        {
+            chatDataService.GetChatById(chatId);
+
+            return Ok(chatDataService.GetChatById(chatId));
         }
 
         [HttpGet]
         [Route("AllMessagesByChat/")]
         public IActionResult ShowAllMessagesByChat(int chatId)
-        {
-            
-
-            return Ok(chatRepository.GetAllMessagesByChat(chatId));
+        {           
+            return Ok(chatDataService.GetAllMessagesByChat(chatId));
         }
 
         [HttpGet]
         [Route("AllMessagesByPaging/")]
-        public IActionResult ShowAllMessagesByPaging()
+        public IActionResult ShowAllMessagesByPaging(int page)
         {
-            var test = chatRepository.GetAllMessagesByPaging();
-            return Ok(test);
+            var paging = chatDataService.GetAllMessagesByPaging(page);
+            return Ok(paging);
         }
 
-        [HttpPost]
-        [Route("MessageSimple/")]
-        public IActionResult PostMessageSimple(string comment)
-        {
-
-
-            Chat chat = chatRepository.GetChatbyId(1);
-
-            chat.Content += Environment.NewLine + DateTime.Now.ToString() + " " + comment;
-
-            chatRepository.UpdateChat(chat);
-
-            return Ok(chat.Content);
-        }
-
-        [HttpPost]
-        
+        [HttpPost]     
         public IActionResult PostMessageComplex(MessageCreate messageCreate)
         {
-            
-
-            Chat chat = chatRepository.GetChatbyId(messageCreate.ChatId);
-
-            Message commentmodel = new Message();
-            commentmodel.ChatId = messageCreate.ChatId;
-            commentmodel.Content = messageCreate.Content;
-            commentmodel.Date = DateTime.Now.ToString();
-            commentmodel.UserName = userManager.GetUserName(User);
-            commentmodel.Deleted = false;
-            commentmodel.EmoticonLink = "Yordi";
-            commentmodel.GifLink = "Yordi";
-            commentmodel.Type = ConversationType.GeneralConversationType;
-
-
-            if (chat.Messages == null)
-            {
-
-                chat.Messages = new List<Message>();
-                chat.Messages.Add(commentmodel);
-            }
-            else
-            {
-                chat.Messages.Add(commentmodel);
-            }
-
-
-
-
-
-            chatRepository.UpdateChat(chat);
+            chatDataService.CreateMessage(messageCreate);
 
             return Ok(messageCreate.Content);
         }
@@ -194,9 +113,9 @@ namespace ChatApp2.API.Controllers
         public IActionResult SearchMessagesBySearchTerm(string searchTerm)
         {
 
-            chatRepository.SearchMessagesBySearchTerm(searchTerm);
+            chatDataService.SearchMessagesBySearchTerm(searchTerm);
 
-            return Ok(chatRepository.SearchMessagesBySearchTerm(searchTerm));
+            return Ok(chatDataService.SearchMessagesBySearchTerm(searchTerm));
         }
 
     }

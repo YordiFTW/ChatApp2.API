@@ -20,6 +20,8 @@ namespace ChatApp2.Domain.Models
 
         public bool IsLoggedIn { get; set; }
 
+        public bool IsBlocked { get; set; }
+
         public string LastAction { get; set; }
     }
 }

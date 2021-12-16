@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using ChatApp2.Bussiness.Repositories;
+using ChatApp2.Bussiness.Services;
 using ChatApp2.Domain.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,64 +15,29 @@ namespace ChatApp2.API.Controllers
     [Route("api/Groups")]
     public class GroupController : Controller
     {
-        private readonly IChatRepository chatRepository;
-        private IGenericRepository<Group> repository = null;
-        private readonly IGenericRepository<Group> ggrepository;
-        private readonly SignInManager<User> signInManager;
-        private readonly UserManager<User> userManager;
-        private readonly IGenericRepository<Chat> cgrepository;
 
-        public GroupController(IChatRepository chatRepository, IGenericRepository<Group> repository, IGenericRepository<Group> ggrepository, SignInManager<User> signInManager
-            , UserManager<User> userManager, IGenericRepository<Chat> cgrepository)
+        private readonly IGroupDataService groupDataService;
+
+        public GroupController(IGroupDataService groupDataService)
         {
-            this.chatRepository = chatRepository;
-            this.repository = repository;
-            this.ggrepository = ggrepository;
-            this.signInManager = signInManager;
-            this.userManager = userManager;
-            this.cgrepository = cgrepository;
+
+            this.groupDataService = groupDataService;
         }
 
         [HttpPost]
         [Route("AddGroup/")]
         public IActionResult AddGroup(int chatId)
         {
-            Group group = new Group();
-            group.Chat = cgrepository.GetById(chatId);
-            string userId = signInManager.Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            group.User = userManager.FindByIdAsync(userId).Result;
-
-            ggrepository.Insert(group);
-            ggrepository.Save();
+            groupDataService.Add(chatId);
 
             return Ok("Success");
         }
 
         [HttpPost]
         [Route("Join/")]
-        public IActionResult Invite(int chatId, string userName, bool isAccepted)
+        public IActionResult Invite(UserAddtoGroup userAddtoGroup)
         {
-            if (isAccepted == true)
-            {
-
-
-                Group group = new Group();
-
-
-                group.Chat = cgrepository.GetById(chatId);
-
-                group.User = userManager.FindByNameAsync(userName).Result;
-
-                ggrepository.Insert(group);
-                ggrepository.Save();
-
-                return Ok("Success");
-            }
-
-            else
-            {
-                //ignore action + change frontend UI
-            }
+            groupDataService.Invite(userAddtoGroup);
 
 
             return Ok();
@@ -79,14 +45,9 @@ namespace ChatApp2.API.Controllers
 
         [HttpPost]
         [Route("Remove/")]
-        public IActionResult RemoveUserFromGroup(int chatId, string userName)
+        public IActionResult RemoveUserFromGroup(UserRemoveFromGroup userRemoveFromGroup)
         {
-            Group group = new Group();
-            group.User = userManager.FindByNameAsync(userName).Result;
-            group.Chat = cgrepository.GetById(chatId);
-
-            ggrepository.DeleteByObj(group);
-            ggrepository.Save();
+            groupDataService.RemoveUserFromGroup(userRemoveFromGroup);
             return Ok("Success");
         }
 
@@ -95,8 +56,7 @@ namespace ChatApp2.API.Controllers
         public IActionResult DeleteEntireGroup(int chatId)
         {
 
-            ggrepository.DeleteAllByChatId(chatId);
-            ggrepository.Save();
+            groupDataService.DeleteEntireGroup(chatId);
 
             return Ok("Success");
         }

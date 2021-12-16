@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using ChatApp2.Domain.DbContexts;
 using ChatApp2.Domain.Models;
 using Microsoft.EntityFrameworkCore;
+using PagedList;
 
 namespace ChatApp2.Bussiness.Repositories
 {
@@ -14,6 +15,7 @@ namespace ChatApp2.Bussiness.Repositories
     {
         private ChatAppDbContext _context = null;
         private DbSet<T> table = null;
+        
         public GenericRepository()
         {
             this._context = new ChatAppDbContext();
@@ -75,6 +77,38 @@ namespace ChatApp2.Bussiness.Repositories
         public void Save()
         {
             _context.SaveChanges();
+        }
+
+        public List<Message> GetAllMessagesByChat(int chatId)
+        {
+            List<Message> list = new List<Message>();
+
+            foreach (var item in (_context.Messages.Where(x => x.Chat.Id == chatId)))
+            {
+                list.Add(item);
+            }
+            return list;
+        }
+
+        public IPagedList<Message> GetAllMessagesByPaging(int page)
+        {
+            return _context.Messages.ToPagedList(page, 3);
+        }
+
+        public List<Message> SearchMessagesBySearchTerm(string searchTerm)
+        {
+            List<Message> listofmessages = new List<Message>();
+
+
+            foreach (Message message in _context.Messages)
+            {
+                if (message.Content.Contains(searchTerm))
+                {
+                    listofmessages.Add(message);
+                }
+            }
+
+            return listofmessages;
         }
     }
 }

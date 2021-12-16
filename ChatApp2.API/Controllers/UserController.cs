@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using ChatApp2.Bussiness.Repositories;
+using ChatApp2.Bussiness.Services;
 using ChatApp2.Domain.Enums;
 using ChatApp2.Domain.Models;
 using Microsoft.AspNetCore.Authentication;
@@ -21,52 +22,25 @@ namespace ChatApp2.API.Controllers
         private readonly UserManager<User> userManager;
         private readonly IUserClaimsPrincipalFactory<User> claimsPrincipalFactory;
         private readonly SignInManager<User> signInManager;
+        private readonly IUserDataService userDataService;
 
         public UserController(UserManager<User> userManager,
             IUserClaimsPrincipalFactory<User> claimsPrincipalFactory,
-            SignInManager<User> signInManager)
+            SignInManager<User> signInManager, IUserDataService userDataService)
         {
             this.userManager = userManager;
             this.claimsPrincipalFactory = claimsPrincipalFactory;
             this.signInManager = signInManager;
+            this.userDataService = userDataService;
         }
-        [HttpGet]
-        [Authorize]
-        [Route("IdentityInfo/")]
-        public IActionResult IdentityInfo()
-        {
-            List<string> info = new List<string>();
-
-            info.Add("test");
-            foreach (var claim in signInManager.Context.User.Claims)
-            {
-                info.Add(claim.ToString());
-            }
-
-
-            return Ok(info);
-        }
-
-        [HttpPost]
-        //[ValidateAntiForgeryToken]
         
+
+        [HttpPost]   
         public async Task<IActionResult> Register(RegisterModel model)
         {
             if (ModelState.IsValid)
             {
-                var user = await userManager.FindByNameAsync(model.UserName);
-
-                if (user == null)
-                {
-                    user = new User
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        UserName = model.UserName,
-                        Email = model.EmailAddress
-                    };
-
-                    var result = await userManager.CreateAsync(user, model.Password);
-                }
+               await userDataService.Register(model);           
 
                 return Ok("Success");
             }
@@ -80,16 +54,11 @@ namespace ChatApp2.API.Controllers
         {
             if (ModelState.IsValid)
             {
-                var signInResult = await signInManager.PasswordSignInAsync(model.UserName, model.Password,
-                    false, false);
-                if (signInResult.Succeeded)
-                {
-                    return Ok("You are now logged in, " + model.UserName);
-                }
-
-                ModelState.AddModelError("", "Invalid UserName or Password");
+                await userDataService.Login(model);
+                return Ok("login success");
             }
 
+            else
             return Ok("Invalid Username or Password");
         }
 
@@ -154,23 +123,35 @@ namespace ChatApp2.API.Controllers
         [Route("List/")]
         public async Task<IActionResult> GetListOfLoggedInUsers()
         {
+            return Ok(await userDataService.GetListOfLoggedInUsers());
+        }
 
-
-            return Ok(userManager.Users.Where(x => x.IsLoggedIn == false));
+        [HttpGet]
+        [Route("AllUsers/")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            return Ok(await userDataService.GetAllUsers());
         }
 
 
-        [HttpPut]
-        
+        [HttpPut]     
         public async Task<IActionResult> UpdateUser(User user)
         {
             if (ModelState.IsValid)
             {
-                userManager.UpdateAsync(user);
+                await userDataService.UpdateUser(user);
             }
 
 
-            return Ok("Success");
+            return Ok(user);
+
+        }
+
+        [HttpPost]
+        [Route("Block/")]
+        public async Task<IActionResult> BlockUser(UsernameModel model)
+        {
+            return Ok(userDataService.BlockUser(model));
 
         }
 
@@ -178,21 +159,7 @@ namespace ChatApp2.API.Controllers
         [Route("/CurrentUser/")]
         public async Task<IActionResult> CurrentUser()
         {
-            User user = userManager.GetUserAsync(User).Result;
-
-            RegisterModel registermodel = new RegisterModel();
-
-
-            registermodel.EmailAddress = user.Email;
-            registermodel.UserName = user.UserName;
-            registermodel.Password = "******";
-            registermodel.ConfirmPassword = "******";
-
-
-
-
-
-            return Ok(registermodel);
+            return Ok(userDataService.CurrentUser());
 
         }
     }
